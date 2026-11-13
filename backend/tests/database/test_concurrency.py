@@ -6,11 +6,10 @@ import threading
 import pymysql
 import pytest
 
-from tests.conftest import HOST, PORT, TEST_DB, admin_connect, make_instrument, random_rows
-
+from tests.conftest import ADMIN, HOST, PORT, TEST_DB, admin_connect, make_instrument, random_rows
 
 def conn():
-    return pymysql.connect(host=HOST, port=PORT, user="root", password="", database=TEST_DB,
+   return pymysql.connect(host=HOST, port=PORT, user=ADMIN[0], password=ADMIN[1], database=TEST_DB,
                            cursorclass=pymysql.cursors.DictCursor, autocommit=False)
 
 
