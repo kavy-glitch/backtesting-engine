@@ -1,0 +1,71 @@
+﻿name: Portfolio Backtesting Engine CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend Tests and Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  cpp:
+    name: C++ Engine Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build and run C++ tests
+        run: docker build --target engine-tests -f backend/Dockerfile .
+
+  backend:
+    name: Backend Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CI environment
+        run: |
+          cat > .env <<'EOF'
+          MYSQL_ROOT_PASSWORD=ci-root-password
+          PBE_DB_NAME=pbe
+          PBE_DB_USER=pbe_app
+          PBE_DB_PASSWORD=ci-app-password
+          PBE_READONLY_USER=pbe_readonly
+          PBE_READONLY_PASSWORD=ci-readonly-password
+          EOF
+
+      - name: Run backend integration tests
+        run: docker compose --profile test run --build --rm tests
