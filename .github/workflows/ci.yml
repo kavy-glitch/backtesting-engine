@@ -52,20 +52,17 @@ jobs:
     name: Backend Integration Tests
     runs-on: ubuntu-latest
 
+    env:
+      MYSQL_ROOT_PASSWORD: ci-root-password
+      PBE_DB_NAME: pbe
+      PBE_DB_USER: pbe_app
+      PBE_DB_PASSWORD: ci-app-password
+      PBE_READONLY_USER: pbe_readonly
+      PBE_READONLY_PASSWORD: ci-readonly-password
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Configure CI environment
-        run: |
-          cat > .env <<'EOF'
-          MYSQL_ROOT_PASSWORD=ci-root-password
-          PBE_DB_NAME=pbe
-          PBE_DB_USER=pbe_app
-          PBE_DB_PASSWORD=ci-app-password
-          PBE_READONLY_USER=pbe_readonly
-          PBE_READONLY_PASSWORD=ci-readonly-password
-          EOF
 
       - name: Run backend integration tests
         run: docker compose --profile test run --build --rm tests
