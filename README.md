@@ -1,184 +1,437 @@
 # Portfolio Backtesting Engine
 
-A full-stack strategy backtesting application for the B.Tech (Mathematics & Computing) OOP and DBMS projects at SVNIT Surat.
+A full-stack strategy backtesting application built for the B.Tech (Mathematics & Computing) OOP and DBMS projects at SVNIT Surat.
 
-| Layer | Technology | Where |
-|---|---|---|
-| Simulation engine | **C++17** (OOP: abstract classes, polymorphism, templates, STL, RAII) | `engine/` |
-| API | Python 3.12, FastAPI, PyMySQL (parameterised SQL) | `backend/` |
-| Database | **MySQL 8** (InnoDB): constraints, trigger, procedure + cursor, function, views, least-privilege users | `database/` |
-| Frontend | React 19 + TypeScript + Tailwind + TradingView Lightweight Charts | `frontend/` |
-| Packaging | Docker Compose (`db`, `api`, `web`) | `docker-compose.yml` |
-
-```
-Browser ──► nginx (web) ──► FastAPI (api) ──► MySQL (db)
-                              │
-                              └─► engine (C++ executable, JSON in / JSON out)
-```
-
-## What you can do with it
-
-* Load **real** daily prices (Yahoo Finance via `yfinance`, or your own CSV files) or the bundled **synthetic** demo data (always labelled `SYNTHETIC`).
-* Backtest **Buy & Hold, SMA crossover, EMA crossover, RSI threshold, MACD crossover** with initial capital, position sizing (% of cash or fixed quantity), fees (% and flat), slippage (bps), optional stop-loss / take-profit, risk-free rate.
-* See an interactive **candlestick chart** (volume, SMA/EMA overlays, RSI and MACD panes, buy/sell markers, trade tooltips, zoom/pan/crosshair, date-range buttons), **equity curve vs buy & hold**, **drawdown**, daily returns, trade P&L, a sortable/filterable/paginated **trade table** with detail view, and every metric with an explanation when it cannot be computed.
-* **Save** backtests and strategies in MySQL, reopen them from **History**, **export** trades / equity / metrics / summary as CSV, **compare** up to six strategies on the same data.
-* Light and dark theme, responsive layout, skeleton loading states, empty and error states, toast notifications, form validation.
-
-Execution rules (no look-ahead): a signal formed at a candle's **close** is filled at the **next candle's open**, with slippage and fees. Long-only, no leverage. Full details: [`docs/engine.md`](docs/engine.md).
-
-> **Educational tool.** Backtests are simulations on historical data and say nothing certain about future results. The bundled demo prices are random numbers, not market data.
+Test trading strategies on historical market data using a C++ simulation engine, Python API, MySQL database and interactive React dashboard.
 
 ---
 
-## Quick start (Windows + Docker) — recommended
+## Table of Contents
 
-You need: **Docker Desktop** (WSL 2 backend enabled), **Git**, **VS Code** (optional). You do **not** need Python, Node.js, MySQL or a C++ compiler for this path; everything is built inside containers.
+- [Technology Stack](#technology-stack)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Execution Rules](#execution-rules)
+- [Quick Start](#quick-start-windows--docker-recommended)
+- [Real Market Data](#real-market-data)
+- [CSV Format](#csv-format)
+- [Stop and Reset](#stop-and-reset)
+- [Running the Tests](#running-the-tests)
+- [Running Without Docker](#running-without-docker-optional)
+- [Project Structure](#project-structure)
+- [Reproducing the Report](#reproducing-the-reports-numbers)
+- [Documentation](#documentation)
+- [Known Limitations](#known-limitations)
 
-All commands are **PowerShell**, run from the project folder.
+---
 
-| # | Do this | What it does | You should see |
-|---|---|---|---|
-| 1 | Start Docker Desktop and wait until it says "Engine running". | The Docker engine must be up. | Whale icon steady. `docker version` prints a Client and a Server section. |
-| 2 | `code .` (or open the folder in VS Code) | Opens the project. | The folders `engine`, `backend`, `database`, `frontend`, `docs`. |
-| 3 | `Copy-Item .env.example .env` | Creates your private settings file. | A new `.env` file. **Open it and replace every `CHANGE_ME…` value** with your own passwords. |
-| 4 | `docker compose up --build -d` | Builds the three images (C++ engine is compiled inside) and starts them. First run takes several minutes. | Ends with `Container pbe-web-1 Started`. |
-| 5 | `docker compose ps` | Lists containers. | `db`, `api`, `web` all `running` / `healthy` (the API needs ~30 s). |
-| 6 | `docker compose logs api` | Shows API start-up. | `Loading synthetic demo data…`, then `SYNTH-TREND: inserted 780 …  [SYNTHETIC]`, `strategy catalogue synchronised (5 strategies)`. |
-| 7 | Open **http://localhost:8080** | The application. | Overview page, top-right pill says **All systems ready**. |
-| 8 | Click **Backtest**, keep the defaults (`SYNTH-TREND`, SMA Crossover 10/30), press **Run backtest**. | Runs the engine. | Eight summary cards, candlestick chart with BUY/SELL arrows, trades table. |
-| 9 | Press **Save**, then open **History**. | Stores the run in MySQL. | The run appears with its return, drawdown and Sharpe; export links (`trades.csv` …) appear above the results. |
-| 10 | `docker compose exec api python -m scripts.smoke_test` | Automated end-to-end check of the running stack. | `ALL CHECKS PASSED` |
-| 11 | Open **http://localhost:8000/docs** | Interactive API documentation (the Swagger page loads its scripts from a CDN, so it needs internet). | Swagger UI listing every endpoint. |
+## Technology Stack
 
-### Real market data
+| Layer | Technology | Directory |
+|---|---|---|
+| Simulation Engine | **C++17** (OOP, abstract classes, polymorphism, templates, STL, RAII) | `engine/` |
+| API | Python 3.12, FastAPI, PyMySQL | `backend/` |
+| Database | **MySQL 8** (InnoDB, constraints, triggers, procedures, functions, views) | `database/` |
+| Frontend | React 19, TypeScript, Tailwind CSS, TradingView Lightweight Charts | `frontend/` |
+| Packaging | Docker Compose (`db`, `api`, `web`) | Root |
 
-In the app: **Market data → Fetch from Yahoo Finance**, ticker `RELIANCE.NS` (NSE stocks end in `.NS`, BSE in `.BO`, indices start with `^`, e.g. `^NSEI`). Or from PowerShell:
+## Architecture
+
+The application uses a layered architecture:
+
+```text
+Browser
+   |
+   v
+nginx (web)
+   |
+   v
+FastAPI (api)
+   |
+   +-----------> MySQL (db)
+   |
+   v
+C++ Engine
+(JSON input / JSON output)
+```
+
+The C++ engine handles the backtesting calculations independently. The FastAPI backend manages API requests, database operations and communication with the engine. The React frontend provides the interactive user interface.
+
+## Features
+
+### Backtesting
+
+- Load real daily market prices through Yahoo Finance using `yfinance`.
+- Import your own historical CSV files.
+- Use bundled synthetic demo datasets, clearly labelled `SYNTHETIC`.
+- Backtest the following strategies:
+  - Buy & Hold
+  - SMA Crossover
+  - EMA Crossover
+  - RSI Threshold
+  - MACD Crossover
+- Configure initial capital and position sizing.
+- Configure percentage and flat fees.
+- Configure slippage in basis points.
+- Set optional stop-loss and take-profit levels.
+- Configure the risk-free rate.
+
+### Charts and Analytics
+
+- Interactive candlestick charts.
+- Volume charts.
+- SMA and EMA overlays.
+- RSI and MACD indicator panes.
+- Buy and sell markers.
+- Trade tooltips.
+- Zoom, pan, crosshair and date-range controls.
+- Equity curve compared with Buy & Hold.
+- Drawdown and daily returns.
+- Trade profit and loss.
+- Sortable, filterable and paginated trade table.
+- Detailed trade information.
+- Explanations for metrics that cannot be calculated.
+
+### Strategy Management
+
+- Save backtest results and strategies in MySQL.
+- Reopen previous runs through History.
+- Export trades, equity, metrics and summaries as CSV.
+- Compare up to six strategies using the same data.
+
+### User Interface
+
+- Light and dark themes.
+- Responsive layout.
+- Loading skeletons.
+- Empty and error states.
+- Toast notifications.
+- Form validation.
+
+## Execution Rules
+
+The engine avoids look-ahead bias.
+
+A trading signal formed at a candle's **close** is filled at the **next candle's open**, with applicable slippage and fees.
+
+The engine currently supports:
+- Long-only trading.
+- No leverage.
+
+For the complete execution model, see [`docs/engine.md`](docs/engine.md).
+
+> **Educational tool:** Backtests are simulations using historical data and cannot predict future results. The bundled synthetic demo prices are randomly generated numbers, not real market data.
+
+---
+
+## Quick Start (Windows + Docker) — Recommended
+
+### Requirements
+
+You need:
+
+- Docker Desktop with the WSL 2 backend enabled.
+- Git.
+- VS Code (optional).
+
+You do **not** need to install Python, Node.js, MySQL or a C++ compiler for this setup. Everything is built inside Docker containers.
+
+All commands below use **PowerShell** and should be executed from the project root folder.
+
+| Step | Command / Action | Expected Result |
+|---|---|---|
+| 1 | Start Docker Desktop. | Docker Engine is running. |
+| 2 | Open the project folder in VS Code using `code .`. | Project folders are visible. |
+| 3 | `Copy-Item .env.example .env` | Creates your private environment file. |
+| 4 | Open `.env` and replace every `CHANGE_ME...` value with your own passwords. | Environment settings are configured. |
+| 5 | `docker compose up --build -d` | Builds and starts the containers. The first build may take several minutes. |
+| 6 | `docker compose ps` | `db`, `api` and `web` containers should be running or healthy. |
+| 7 | `docker compose logs api` | Shows API startup and demo data initialization. |
+| 8 | Open `http://localhost:8080`. | The application dashboard loads. |
+| 9 | Open Backtest, keep the default `SYNTH-TREND` dataset and SMA Crossover 10/30 strategy, then click Run Backtest. | Backtest results, charts and trades appear. |
+| 10 | Click Save and open History. | The saved run appears in History. |
+| 11 | Run `docker compose exec api python -m scripts.smoke_test`. | Displays `ALL CHECKS PASSED`. |
+| 12 | Open `http://localhost:8000/docs`. | Interactive FastAPI Swagger documentation loads. |
+
+The API documentation's Swagger interface loads scripts from a CDN, so an internet connection is required for those resources.
+
+### Real Market Data
+
+You can fetch real market data from the application:
+
+**Market Data → Fetch from Yahoo Finance**
+
+Example ticker symbols:
+
+- `RELIANCE.NS`
+- `TCS.NS`
+- `INFY.NS`
+- `^NSEI`
+
+NSE stocks generally use `.NS`, BSE stocks use `.BO`, and indices can use symbols such as `^NSEI`.
+
+You can also fetch data from PowerShell:
 
 ```powershell
 docker compose exec api python -m scripts.fetch_real_data RELIANCE.NS TCS.NS INFY.NS --start 2019-01-01
 ```
 
-This needs internet and uses the unofficial `yfinance` library (personal/educational use; prices are split/dividend adjusted). **If Yahoo is unreachable at your demo, you can still demonstrate with the synthetic data, or import a CSV** (Market data → CSV). After one successful fetch, the data lives in MySQL and works offline. Save a backup with `--save-csv data/real` if you like.
+This requires internet access and uses the unofficial `yfinance` library.
 
-### CSV format
+If Yahoo Finance is unavailable, you can still demonstrate the application using synthetic data or import your own CSV files.
 
-```
+After a successful fetch, the data is stored in MySQL and can be used offline.
+
+### CSV Format
+
+The application accepts CSV files with the following format:
+
+```csv
 Date,Open,High,Low,Close,Volume
 2024-01-01,2750.10,2790.00,2741.55,2781.30,5123456
 ```
-Dates `YYYY-MM-DD` (a time suffix is tolerated), extra columns ignored. Invalid files are rejected as a whole with row numbers (bad dates, non-numeric or missing values, high < low, non-positive prices, negative volume, duplicate dates). Unsorted files are sorted with an explicit warning; gaps over 10 days produce a warning.
 
-### Stop / reset
+Requirements:
+
+- Dates must use `YYYY-MM-DD` format. A time suffix is also tolerated.
+- Extra columns are ignored.
+- Invalid files are rejected with row numbers.
+- Invalid dates, non-numeric values, missing values, duplicate dates, invalid prices and negative volume are rejected.
+- Unsorted files are sorted with an explicit warning.
+- Gaps greater than 10 days produce a warning.
+
+### Stop and Reset
+
+To stop the application while keeping the database:
 
 ```powershell
-docker compose down        # stop, keep the database
-docker compose down -v     # stop AND delete the database volume (also needed after editing database/schema.sql)
+docker compose down
 ```
+
+To stop the application and delete the database volume:
+
+```powershell
+docker compose down -v
+```
+
+**Warning:** The second command deletes the database volume and its stored data.
 
 ---
 
-## Running the tests
+## Running the Tests
 
-| Suite | Command | Needs |
+The project includes separate test suites for the C++ engine, backend, frontend and complete application.
+
+| Test Suite | Command | Requirements |
 |---|---|---|
-| C++ unit tests (51) | `docker build --target engine-tests -f backend/Dockerfile .` (or `make engine-test`) | Docker (downloads GoogleTest during the build) |
-| Backend, database, concurrency, engine cross-check (79) | `docker compose --profile test run --rm tests` | Docker; uses its own throw-away database `pbe_test` |
-| Frontend (49) | `docker build --target test frontend` | Docker |
-| End-to-end on the running stack | `docker compose exec api python -m scripts.smoke_test` | stack running |
+| C++ unit tests (51) | `docker build --target engine-tests -f backend/Dockerfile .` or `make engine-test` | Docker |
+| Backend, database, concurrency and engine cross-check (79) | `docker compose --profile test run --rm tests` | Docker |
+| Frontend tests (49) | `docker build --target test frontend` | Docker |
+| End-to-end smoke test | `docker compose exec api python -m scripts.smoke_test` | Running application |
 
-What each suite covers and the actual results obtained are in [`docs/testing.md`](docs/testing.md).
+The backend test suite uses its own temporary database named `pbe_test`.
 
-## Running without Docker (optional)
+For detailed test coverage and verification results, see [`docs/testing.md`](docs/testing.md).
 
-Install Python 3.12, Node.js 22, MySQL 8.x, CMake and a C++17 compiler (Visual Studio Build Tools, workload "Desktop development with C++"). Then, in PowerShell:
+## Running Without Docker (Optional)
+
+You can also run the components individually.
+
+### Requirements
+
+Install:
+
+- Python 3.12
+- Node.js 22
+- MySQL 8.x
+- CMake
+- A C++17 compiler (Visual Studio Build Tools with the Desktop development with C++ workload on Windows)
+
+### 1. Build the C++ Engine
 
 ```powershell
-# 1. build the engine
 cmake -S engine -B engine/build -DPBE_BUILD_TESTS=ON
 cmake --build engine/build --config Release
-ctest --test-dir engine/build -C Release            # C++ tests
+ctest --test-dir engine/build -C Release
+```
 
-# 2. database (as the MySQL root user; choose your own password)
-mysql -uroot -p -e "CREATE DATABASE pbe CHARACTER SET utf8mb4; CREATE USER 'pbe_app'@'localhost' IDENTIFIED BY 'YOUR_PASSWORD'; GRANT SELECT,INSERT,UPDATE,DELETE,EXECUTE ON pbe.* TO 'pbe_app'@'localhost';"
+### 2. Configure the Database
+
+Run the following commands using the MySQL root account. Replace `YOUR_PASSWORD` with your chosen password.
+
+```sql
+CREATE DATABASE pbe CHARACTER SET utf8mb4;
+
+CREATE USER 'pbe_app'@'localhost'
+IDENTIFIED BY 'YOUR_PASSWORD';
+
+GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE
+ON pbe.* TO 'pbe_app'@'localhost';
+```
+
+Load the database schema:
+
+```powershell
 mysql -uroot -p pbe -e "source database/schema.sql"
+```
 
-# 3. backend
+### 3. Start the Backend
+
+```powershell
 cd backend
-python -m venv .venv ; .\.venv\Scripts\Activate.ps1
+
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
 pip install -r requirements.txt
-$env:PBE_DB_HOST="127.0.0.1"; $env:PBE_DB_NAME="pbe"; $env:PBE_DB_USER="pbe_app"; $env:PBE_DB_PASSWORD="YOUR_PASSWORD"
+
+$env:PBE_DB_HOST="127.0.0.1"
+$env:PBE_DB_NAME="pbe"
+$env:PBE_DB_USER="pbe_app"
+$env:PBE_DB_PASSWORD="YOUR_PASSWORD"
+
 $env:PBE_ENGINE_PATH="$PWD\..\engine\build\Release\engine.exe"
+
 python -m scripts.load_demo_data
+
 uvicorn app.main:app --port 8000
-
-# 4. frontend (second terminal)
-cd frontend ; npm ci ; npm run dev                  # http://localhost:5173 (proxies /api to :8000)
 ```
 
-> This path was **not** run on Windows by the author (see "Verification status" in `docs/testing.md`). The Docker path is the supported one.
+### 4. Start the Frontend
 
-## Project layout
+Open a second PowerShell terminal:
 
+```powershell
+cd frontend
+
+npm ci
+npm run dev
 ```
+
+The frontend will be available at:
+
+`http://localhost:5173`
+
+The frontend development server proxies API requests to port `8000`.
+
+> **Verification status:** The standalone setup has not been run on Windows by the author. The Docker setup is the supported path.
+
+---
+
+## Project Structure
+
+```text
 portfolio-backtesting-engine/
-├── engine/                     C++17 simulation engine (no HTTP, no database)
+│
+├── engine/                     C++17 simulation engine
 │   ├── include/pbe/
-│   │   ├── core/               types, errors, money, date_util, containers (RollingWindow<T>, NumericBuffer)
-│   │   ├── data/               candle_series (validation), csv_loader
-│   │   ├── strategy/           indicators, strategy (abstract Strategy, 5 strategies, factory)
-│   │   ├── execution/          broker, portfolio, backtester (simulation loop), metrics
-│   │   └── io/                 json_io (the engine's JSON contract)
-│   ├── src/                    implementation files, same sub-folders; main.cpp = command-line tool
-│   ├── tests/                  GoogleTest: one file per suite (51 tests)
-│   └── third_party/nlohmann/   vendored JSON library
+│   │   ├── core/                Types, errors, money, date utilities
+│   │   ├── data/                Candle series and CSV loader
+│   │   ├── strategy/            Indicators and trading strategies
+│   │   ├── execution/           Portfolio, broker, backtester and metrics
+│   │   └── io/                  JSON input/output
+│   ├── src/                     Implementation files and main.cpp
+│   ├── tests/                   GoogleTest unit tests
+│   └── third_party/             Third-party libraries
+│
 ├── backend/                    Python 3.12 FastAPI service
 │   ├── app/
-│   │   ├── main.py             application factory
-│   │   ├── api/                schemas.py (pydantic) and routers/ (health, instruments, strategies, backtests)
-│   │   ├── services/           backtests.py (orchestration), exports.py (CSV), candle_validation.py
-│   │   ├── repositories/       all SQL: instruments.py, strategies.py, runs.py
-│   │   ├── integrations/       engine_client.py (subprocess bridge), providers.py (Yahoo Finance)
-│   │   └── core/               config, db (connection + transaction), db_init, errors, deps
-│   ├── scripts/                init_db, load_demo_data, fetch_real_data, generate_synthetic_data, smoke_test, demo_concurrency
-│   └── tests/                  api/, database/, engine/ (cross-check against an independent Python reference); 79 tests
-├── database/                   schema.sql (tables, constraints, trigger, procedure, function, views), 02_security.sh (accounts)
-├── frontend/src/               React + TypeScript
-│   ├── pages/                  Overview, Backtest, Compare, Strategies, History, Data
-│   ├── components/             ui/, charts/, backtest/ (form, results, metrics, trades), layout/, effects/ (cover, cinematic, cursor)
-│   ├── api/ lib/ test/         typed client and types; validation, formatting, hooks; Vitest (49 tests)
-├── data/sample/                SYNTH-*.csv (SYNTHETIC demo candles; regenerate with python -m scripts.generate_synthetic_data)
-├── experiments/                reproduce_report.py and robustness.py: regenerate every number in the report (results.json, robustness.json)
-├── report/                     report.tex, figures/ and the built report.pdf
-├── docs/                       architecture.md, engine.md, database.md, api.md, testing.md, troubleshooting.md
-│   └── academic/               syllabus-mapping.md, viva-qa.md, demo-script.md, worked-example.md, sql-demos.sql
-├── Makefile                    make test | experiments | report | up | down | smoke
-└── docker-compose.yml  .env.example  THIRD_PARTY_NOTICES.md
+│   │   ├── main.py              Application factory
+│   │   ├── api/                 API schemas and routers
+│   │   ├── services/             Backtesting and export services
+│   │   ├── repositories/         Database queries
+│   │   ├── integrations/         Engine bridge and market data providers
+│   │   └── core/                Configuration, database and dependencies
+│   ├── scripts/                 Database, demo data and utility scripts
+│   └── tests/                   Backend and integration tests
+│
+├── frontend/                   React + TypeScript application
+│   └── src/
+│       ├── pages/               Overview, Backtest, Compare, Strategies, History, Data
+│       ├── components/          UI, charts, backtesting and layout components
+│       ├── api/                 Typed API client
+│       ├── lib/                 Shared utilities
+│       └── test/                Frontend tests
+│
+├── database/                   MySQL schema and security scripts
+│
+├── data/
+│   ├── sample/                 Synthetic demo datasets
+│   └── processed/              Processed market datasets
+│
+├── docker/                     Additional Docker configuration
+│
+├── python/                     Python data-processing utilities
+│
+├── experiments/                Reproducible experiments and analysis
+│
+├── docs/                        Technical and academic documentation
+│   └── academic/               Course mapping, viva and demo material
+│
+├── report/                      Academic report and figures
+│
+├── docker-compose.yml           Main Docker Compose configuration
+├── .env.example                 Environment configuration template
+├── Makefile                     Project automation commands
+├── THIRD_PARTY_NOTICES.md       Third-party notices
+└── README.md                    Project documentation
 ```
 
-## Reproducing the report's numbers
+## Reproducing the Report's Numbers
 
-Every figure and table in Chapter 7 of the report is produced by code, not typed in:
+The figures and tables in Chapter 7 of the report are generated through code.
+
+To reproduce the experiments:
 
 ```bash
-make experiments     # builds the engine, then writes experiments/results.json and experiments/robustness.json
-make report          # rebuilds report/report.pdf (needs a LaTeX installation)
+make experiments
 ```
 
-## Documentation index
+This builds the engine and generates:
 
-* [`docs/architecture.md`](docs/architecture.md): components, data flow, design decisions
-* [`docs/engine.md`](docs/engine.md): execution model, indicator and metric definitions, engine JSON contract
-* [`docs/database.md`](docs/database.md): ER diagram, schema, normalisation, SQL examples, security
-* [`docs/api.md`](docs/api.md): every endpoint
-* [`docs/testing.md`](docs/testing.md): tests, actual results, verification status
-* [`docs/troubleshooting.md`](docs/troubleshooting.md)
-* For the course submission and demonstration: [`docs/academic/syllabus-mapping.md`](docs/academic/syllabus-mapping.md) (OOP and DBMS syllabus to code), [`worked-example.md`](docs/academic/worked-example.md), [`demo-script.md`](docs/academic/demo-script.md), [`viva-qa.md`](docs/academic/viva-qa.md), [`sql-demos.sql`](docs/academic/sql-demos.sql)
+- `experiments/results.json`
+- `experiments/robustness.json`
 
-## Known limitations
+To rebuild the PDF report:
 
-* Long-only, one instrument per run, daily candles only (no intraday), market orders only, no leverage, no dividends/taxes modelling (Yahoo prices are already adjusted).
-* One position at a time; the whole position is sold on an exit signal.
-* No user accounts: it is a single-user local application (database access is still least-privilege).
-* `yfinance` is unofficial and can break without notice; CSV import and the database cache are the fallback.
-* Sharpe/Sortino use daily mark-to-market returns of the **portfolio** (including idle cash) annualised with 252 days.
-* Multi-asset portfolios are not implemented. The `Portfolio` class stores positions per symbol, so the engine is ready for it, but nothing above the engine exposes it.
+```bash
+make report
+```
+
+A LaTeX installation is required to generate the PDF.
+
+## Documentation
+
+The repository contains additional documentation covering the architecture, implementation and academic aspects of the project.
+
+| Document | Description |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | System components, data flow and design decisions |
+| [`docs/engine.md`](docs/engine.md) | Execution model, indicators, metrics and engine JSON contract |
+| [`docs/database.md`](docs/database.md) | ER diagram, schema, normalization, SQL examples and security |
+| [`docs/api.md`](docs/api.md) | API endpoints |
+| [`docs/testing.md`](docs/testing.md) | Test coverage, results and verification status |
+| [`docs/troubleshooting.md`](docs/troubleshooting.md) | Troubleshooting guide |
+| [`docs/academic/syllabus-mapping.md`](docs/academic/syllabus-mapping.md) | OOP and DBMS syllabus mapping |
+| [`docs/academic/worked-example.md`](docs/academic/worked-example.md) | Worked example |
+| [`docs/academic/demo-script.md`](docs/academic/demo-script.md) | Project demonstration script |
+| [`docs/academic/viva-qa.md`](docs/academic/viva-qa.md) | Viva preparation questions and answers |
+| [`docs/academic/sql-demos.sql`](docs/academic/sql-demos.sql) | SQL demonstration queries |
+
+## Known Limitations
+
+- Long-only trading.
+- One instrument per backtest run.
+- Daily candles only; intraday data is not supported.
+- Market orders only.
+- No leverage.
+- No dividend or tax modelling (Yahoo Finance prices are already adjusted).
+- Only one position at a time; the entire position is sold on an exit signal.
+- No user accounts; the application is designed as a single-user local application.
+- `yfinance` is unofficial and may stop working without notice. CSV import and database caching provide alternatives.
+- Sharpe and Sortino ratios use daily mark-to-market portfolio returns, including idle cash, annualized using 252 trading days.
+- Multi-asset portfolios are not implemented at the application level. The C++ `Portfolio` class supports positions per symbol, but multi-asset backtesting is not exposed through the application.
+
+---
+
+**Portfolio Backtesting Engine** — A full-stack application combining C++ financial simulation, Python backend development, database management and interactive financial visualization.
