@@ -1,0 +1,213 @@
+{
+ "table_7_3_strategies": [
+  {
+   "strategy": "Buy and Hold",
+   "final_equity": 197438.64106350002,
+   "return_pct": 97.43864106350001,
+   "max_dd_pct": 32.37585568387989,
+   "sharpe": 1.2189211953254402,
+   "closed_trades": 0,
+   "win_rate_pct": null,
+   "fees": 98.9224365,
+   "exposure_pct": 99.87179487179488,
+   "benchmark_return_pct": 95.228863726095
+  },
+  {
+   "strategy": "SMA 10/30",
+   "final_equity": 155377.0734318152,
+   "return_pct": 55.37707343181519,
+   "max_dd_pct": 22.46022322889434,
+   "sharpe": 0.9907978575993247,
+   "closed_trades": 16,
+   "win_rate_pct": 43.75,
+   "fees": 3506.6534731849997,
+   "exposure_pct": 61.66666666666667,
+   "benchmark_return_pct": 95.228863726095
+  },
+  {
+   "strategy": "EMA 12/26",
+   "final_equity": 162461.48614234512,
+   "return_pct": 62.46148614234512,
+   "max_dd_pct": 25.889678691332147,
+   "sharpe": 1.0630416165097396,
+   "closed_trades": 10,
+   "win_rate_pct": 50.0,
+   "fees": 2206.951792655,
+   "exposure_pct": 63.84615384615384,
+   "benchmark_return_pct": 95.228863726095
+  },
+  {
+   "strategy": "RSI 14 (30/70)",
+   "final_equity": 104724.78775979504,
+   "return_pct": 4.724787759795043,
+   "max_dd_pct": 22.91419943611946,
+   "sharpe": 0.20271106986825965,
+   "closed_trades": 3,
+   "win_rate_pct": 66.66666666666667,
+   "fees": 643.200545205,
+   "exposure_pct": 25.128205128205128,
+   "benchmark_return_pct": 95.228863726095
+  },
+  {
+   "strategy": "MACD 12/26/9",
+   "final_equity": 104609.03552282533,
+   "return_pct": 4.609035522825332,
+   "max_dd_pct": 28.733719799855358,
+   "sharpe": 0.17498560007691863,
+   "closed_trades": 34,
+   "win_rate_pct": 29.41176470588235,
+   "fees": 5991.074052175001,
+   "exposure_pct": 44.743589743589745,
+   "benchmark_return_pct": 95.228863726095
+  }
+ ],
+ "table_7_4_sma_metrics": {
+  "annual_volatility_pct": 15.618656581630228,
+  "avg_loss": -3225.8274770166513,
+  "avg_trade_return_pct": 1.5360001561957892,
+  "avg_win": 7441.862325195018,
+  "breakeven_trades": 0,
+  "buy_hold_final_equity": 195228.863726095,
+  "buy_hold_return_pct": 95.228863726095,
+  "cagr_pct": 15.928728685855642,
+  "closed_trades": 16,
+  "exposure_pct": 61.66666666666667,
+  "final_equity": 155377.0734318152,
+  "initial_capital": 100000.0,
+  "losing_trades": 9,
+  "max_drawdown_pct": 22.46022322889434,
+  "net_profit": 55377.073431815195,
+  "notes": {},
+  "profit_factor": 1.7943039989142202,
+  "realized_pnl": 23060.588983215257,
+  "sharpe_ratio": 0.9907978575993247,
+  "sortino_ratio": 1.5408654750167385,
+  "total_fees": 3506.6534731849997,
+  "total_return_pct": 55.37707343181519,
+  "unrealized_pnl": 32316.484448599997,
+  "win_rate_pct": 43.75,
+  "winning_trades": 7
+ },
+ "table_7_5_first_trades": [
+  {
+   "entry_date": "2021-04-22",
+   "exit_date": "2021-08-04",
+   "entry_price": 998.45898,
+   "exit_price": 1082.1486550000002,
+   "quantity": 100.0,
+   "net_pnl": 8160.906736500019
+  },
+  {
+   "entry_date": "2021-08-16",
+   "exit_date": "2021-10-12",
+   "entry_price": 1172.876145,
+   "exit_price": 1201.948725,
+   "quantity": 92.0,
+   "net_pnl": 2456.1934719600013
+  },
+  {
+   "entry_date": "2021-11-15",
+   "exit_date": "2021-11-23",
+   "entry_price": 1222.280835,
+   "exit_price": 1160.469475,
+   "quantity": 90.0,
+   "net_pnl": -5777.469927899992
+  },
+  {
+   "entry_date": "2021-12-31",
+   "exit_date": "2022-01-10",
+   "entry_price": 1157.028225,
+   "exit_price": 1128.705365,
+   "quantity": 90.0,
+   "net_pnl": -2754.7734230999995
+  },
+  {
+   "entry_date": "2022-02-04",
+   "exit_date": "2022-02-16",
+   "entry_price": 1165.22232,
+   "exit_price": 1100.3495500000001,
+   "quantity": 87.0,
+   "net_pnl": -5841.0357426899955
+  }
+ ],
+ "table_7_6_series": [
+  {
+   "strategy": "SMA 10/30",
+   "final_equity": 155377.0734318152,
+   "return_pct": 55.37707343181519,
+   "max_dd_pct": 22.46022322889434,
+   "sharpe": 0.9907978575993247,
+   "closed_trades": 16,
+   "win_rate_pct": 43.75,
+   "fees": 3506.6534731849997,
+   "exposure_pct": 61.66666666666667,
+   "benchmark_return_pct": 95.228863726095,
+   "series": "SYNTH-TREND"
+  },
+  {
+   "strategy": "SMA 10/30",
+   "final_equity": 131314.49048010012,
+   "return_pct": 31.314490480100126,
+   "max_dd_pct": 48.44247997239838,
+   "sharpe": 0.43627127919146835,
+   "closed_trades": 14,
+   "win_rate_pct": 28.571428571428573,
+   "fees": 2053.7424499000003,
+   "exposure_pct": 52.820512820512825,
+   "benchmark_return_pct": 71.978402535745,
+   "series": "SYNTH-VOLATILE"
+  },
+  {
+   "strategy": "SMA 10/30",
+   "final_equity": 59086.380311980145,
+   "return_pct": -40.91361968801985,
+   "max_dd_pct": 45.685678444109584,
+   "sharpe": -0.9189856474116758,
+   "closed_trades": 16,
+   "win_rate_pct": 18.75,
+   "fees": 2438.39266802,
+   "exposure_pct": 46.15384615384615,
+   "benchmark_return_pct": -6.669695881999981,
+   "series": "SYNTH-RANGE"
+  }
+ ],
+ "table_7_7_costs": [
+  {
+   "fee_pct": 0,
+   "slippage_bps": 0,
+   "return_pct": 62.60875000000002,
+   "total_fees": 0.0,
+   "closed_trades": 16
+  },
+  {
+   "fee_pct": 0.1,
+   "slippage_bps": 5,
+   "return_pct": 55.37707343181519,
+   "total_fees": 3506.6534731849997,
+   "closed_trades": 16
+  },
+  {
+   "fee_pct": 0.25,
+   "slippage_bps": 20,
+   "return_pct": 40.470703566700045,
+   "total_fees": 8326.429193299999,
+   "closed_trades": 16
+  }
+ ],
+ "protective_exits": {
+  "return_pct": 38.17390677157583,
+  "closed_trades": 17,
+  "exit_reasons": {
+   "take_profit": 3,
+   "signal": 11,
+   "stop_loss": 3
+  }
+ },
+ "timing_ms": {
+  "median": 7.26108200001363,
+  "min": 6.466229000011481,
+  "max": 9.414932000026965,
+  "runs": 30,
+  "includes": "process start-up, CSV read, simulation, JSON encode/decode (Python subprocess)"
+ }
+}

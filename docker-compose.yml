@@ -1,0 +1,82 @@
+# Portfolio Backtesting Engine - three services:
+#   db   MySQL 8.4 (data in the named volume `db_data`; schema + least-privilege users created on first start)
+#   api  FastAPI + the C++ engine (compiled inside the image)
+#   web  nginx serving the React build and proxying /api to the api service
+# Copy .env.example to .env first (it only holds placeholders - choose your own passwords).
+name: pbe
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${PBE_DB_NAME:-pbe}
+      PBE_APP_USER: ${PBE_DB_USER:-pbe_app}
+      PBE_APP_PASSWORD: ${PBE_DB_PASSWORD:?set PBE_DB_PASSWORD in .env}
+      PBE_READONLY_USER: ${PBE_READONLY_USER:-pbe_readonly}
+      PBE_READONLY_PASSWORD: ${PBE_READONLY_PASSWORD:?set PBE_READONLY_PASSWORD in .env}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/02_security.sh:/docker-entrypoint-initdb.d/02_security.sh:ro
+    ports:
+      - "127.0.0.1:${PBE_DB_HOST_PORT:-3307}:3306"     # optional: connect from DBeaver / MySQL Workbench
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PBE_DB_HOST: db
+      PBE_DB_PORT: "3306"
+      PBE_DB_NAME: ${PBE_DB_NAME:-pbe}
+      PBE_DB_USER: ${PBE_DB_USER:-pbe_app}
+      PBE_DB_PASSWORD: ${PBE_DB_PASSWORD:?set PBE_DB_PASSWORD in .env}
+      PBE_CORS_ORIGINS: ${PBE_CORS_ORIGINS:-http://localhost:8080,http://localhost:5173}
+      PBE_LOAD_DEMO_DATA: ${PBE_LOAD_DEMO_DATA:-true}
+    ports:
+      - "127.0.0.1:${PBE_API_PORT:-8000}:8000"          # interactive API docs at http://localhost:8000/docs
+
+  web:
+    build:
+      context: ./frontend
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PBE_WEB_PORT:-8080}:80"
+
+  # `docker compose --profile test run --rm tests` : backend + database + engine cross-check tests.
+  # It creates and drops its own database `pbe_test`; your `pbe` data is untouched.
+  tests:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: test
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PBE_TEST_DB_HOST: db
+      PBE_TEST_DB_PORT: "3306"
+      PBE_TEST_ADMIN_USER: root
+      PBE_TEST_ADMIN_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+
+volumes:
+  db_data:
