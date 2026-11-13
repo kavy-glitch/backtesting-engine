@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: backtesting-mysql
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_data:
